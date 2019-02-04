@@ -1,0 +1,12 @@
+{
+  "name": "DayBackMeetingsService",
+  "alias": "daybackmeetings.now.sh",
+  "builds": [
+        { "src": "index.js", "use": "@now/node" }
+    ],
+  "env": {
+    "ZOOM_ID": "@zoomid",
+    "ZOOM_SECRET": "@zoomsecret"
+  },
+  "version": 2
+}
