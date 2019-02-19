@@ -1,5 +1,10 @@
 # dayback-meetings-service
 
+## Purpose
+The DayBack Meetings Service is the middleware that we set up to connect [DayBack Online](https://app.dayback.com) with [Zoom](https://zoom.us). Check out the blog here for an overview: https://dayback.com/schedule-zoom-meetings-salesforce/
+
+Here you'll find all the required files to set up your own private instance of the DayBack Meetings Service.
+
 ### Hosting the DayBack Meetings Service Yourself
 
 The DayBack Meetings Service is a small web service built in Node.JS. We built it to run as a [Zeit application](https://zeit.co/), so if you’d like to run it yourself, you’ll want to learn more and sign-up for a [Zeit account here](https://zeit.co/signup).
