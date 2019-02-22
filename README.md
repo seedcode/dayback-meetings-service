@@ -1,7 +1,11 @@
 # dayback-meetings-service
 
 ## Purpose
-The DayBack Meetings Service is the middleware that we set up to connect [DayBack Online](https://app.dayback.com) with [Zoom](https://zoom.us). Check out the blog here for an overview: https://dayback.com/schedule-zoom-meetings-salesforce/
+The DayBack Meetings Service is the middleware that we set up to connect [DayBack](https://dayback.com) with [Zoom](https://zoom.us).
+
+For more details on connecting [DayBack Online or in Salesforce](https://dayback.com), check out the blog here for an overview: https://dayback.com/schedule-zoom-meetings-salesforce/
+
+Details on the [DayBack for FileMaker](https://www.seedcode.com/filemaker-calendar/) implementation, including a sample file, can be found here: https://www.seedcode.com/zoom_meetings_filemaker
 
 Here you'll find all the required files to set up your own private instance of the DayBack Meetings Service.
 
