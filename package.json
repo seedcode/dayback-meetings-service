@@ -1,7 +1,7 @@
 {
-  "name": "DayBackMeetingsServicev2",
+  "name": "DayBackMeetingsService",
   "description": "DayBack Meetings Service",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "dependencies": {
     "micro": "latest",
     "moment": "^2.22.2",
