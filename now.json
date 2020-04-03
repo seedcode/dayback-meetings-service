@@ -6,7 +6,8 @@
     ],
   "env": {
     "ZOOM_ID": "@zoomid",
-    "ZOOM_SECRET": "@zoomsecret"
+    "ZOOM_SECRET": "@zoomsecret",
+    "DMSC_KEY": "@dmsckey"
   },
   "version": 2
 }

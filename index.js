@@ -1,7 +1,6 @@
 /*jshint esversion: 6 */
-'use strict';
 
-//DayBack Meetings Service v2.1
+//DayBack Meetings Service v3.0
 //License: MIT
 
 //Purpose:
@@ -10,14 +9,19 @@
 
 //This file is intended to run as a Zeit deployment. See https://zeit.co for more info
 
-const request = require('request');
+const zoom = require('./zoom');
+const needle = require('needle');
 const moment = require('moment');
-const zoomID = process.env.ZOOM_ID;
-const zoomSecret = process.env.ZOOM_SECRET;
-const auth = 'Basic ' + new Buffer(zoomID + ':' + zoomSecret).toString('base64');
-const allowedOrigins = ['http://app.dayback.com', 'https://app.dayback.com'];
+const crypto = require('crypto');
+const cookie = require('cookie');
+const algorithm = 'aes-256-cbc';
+const dmscKey = process.env.DMSC_KEY;
+const allowedOrigins = ['https://app.dayback.com', 'https://beta.dayback.com', 'https://staging.dayback.com'];
 
 const maxRequestsPerSession = 15;
+const clientVersion = 5.0;
+const upgradeInstructions = 'https://dayback.com/schedule-zoom-meetings-salesforce#upgrade';
+const fileMakerUACheck = function(userAgent){return userAgent.substring(0, 9) === 'FileMaker';};
 
 const responseCode = {
   zoomFailedAuth: 124,
@@ -29,110 +33,9 @@ const responseCode = {
   loopDetected: 508
 };
 
-const meetingTypes = {
-  zoom: 'zoom'
-};
 const apiPackages = [
-    {
-      id: 'zoom',
-      meetingPrefix: 'Zoom - ',
-      meetingSearchRegex: new RegExp('Meeting ID:\\s(\\d{9})[\\s\\S]*https://zoom.us/j/(\\d{9})'),
-      refreshTokenErrorRegex: new RegExp('Invalid.*Token'),
-      authorizationHeaders: function(headers){headers.Authorization = auth; return headers;},
-      openURL: function(meetingNumber){return 'https://zoom.us/j/' + meetingNumber;},
-      authRequestType: 'POST',
-      authURL: function(postData){return 'https://zoom.us/oauth/token?grant_type=authorization_code&code=' + postData.authCode + '&redirect_uri=' + postData.redirectURI;},
-      refreshRequestType: 'POST',
-      refreshURL: function(refreshToken){return 'https://' + zoomID + ':' + zoomSecret + '@zoom.us/oauth/token?grant_type=refresh_token&refresh_token=' + refreshToken;},
-      deauthRequestType: 'DELETE',
-      deauthURL: function(authToken){return 'https://zoom.us/oauth/revoke?token=' + authToken;},
-      deleteRequestType: 'DELETE',
-      deleteURL: function(meetingNumber, authToken){return 'https://api.zoom.us/v2/meetings/' + meetingNumber + '?access_token=' + authToken;},
-      updateRequestType: 'PATCH',
-      updateURL: function(meetingNumber, authToken){return 'https://api.zoom.us/v2/meetings/' + meetingNumber + '?access_token=' + authToken;},
-      existingCheckType: 'GET',
-      existingCheckURL: function(meetingNumber, authToken){return'https://api.zoom.us/v2/meetings/' + meetingNumber + '?access_token=' + authToken;},
-      createRequestType: 'POST',
-      existingSendData: function(authToken){return JSON.stringify({
-        access_token: authToken
-      });},
-      createURL: function(authToken){return 'https://api.zoom.us/v2/users/me/meetings?access_token=' + authToken;},
-      createSendData: function(postData){ return JSON.stringify({
-        'topic': postData.editEvent.titleEdit,
-        'start_time': moment(postData.editEvent.start).toISOString().split('.')[0] + 'Z',
-        'duration': moment.duration(moment(postData.editEvent.end).diff(moment(postData.editEvent.start))).asMinutes(),
-        'type': 2
-      });},
-      createReturnData: function(requestResult, postData){return {
-        meetingNumber: requestResult.id,
-        joinURL: requestResult.join_url,
-        editEvent: postData.editEvent
-      };},
-      verifyCreateResult: function(requestResult){ return requestResult.uuid;},
-      conflictRequestType: 'GET',
-      conflictURL: function(pageNumber, authToken){return 'https://api.zoom.us/v2/users/me/meetings?' +
-      'page_number=' + pageNumber +
-      '&page_size=' + 100 +
-      '&type=' + 'scheduled' +
-      '&access_token=' + authToken;},
-      rescheduleSendData: function (titleWithoutPrefix, postData){
-        return JSON.stringify({
-          'topic': titleWithoutPrefix,
-          'start_time': moment(postData.editEvent.start).toISOString().split('.')[0] + 'Z',
-          'duration': moment.duration(moment(postData.editEvent.end).diff(moment(postData.editEvent.start))).asMinutes(),
-          'type': 2
-        });
-      },
-      meetingInformation: function (requestResult){return 'Meeting ID: ' + requestResult.id + '\nJoin URL: ' + requestResult.join_url;},
-      meetingNumber: function(requestResult){return requestResult.id;},
-      authToken: function(requestResult){return requestResult.access_token;},
-      refreshToken: function(requestResult){return requestResult.refresh_token;},
-      oauthSrc: function(postData) {return 'https://zoom.us/oauth/authorize?response_type=code&client_id=' + zoomID + '&redirect_uri=' + postData.redirectURI;},
-      oauthStyle: function(postData) {
-        
-        var leftCalc = postData.innerWidth / 2 - 150;
-        var topCalc = postData.innerHeight / 2 - 225;
-        return {
-          position: 'absolute',
-          width: '320px',
-          height: '500px',
-          left: (leftCalc > 0 ? leftCalc : 0) + 'px',
-          top: (topCalc > 0 ? topCalc : 0) + 'px',
-          border: '18px rgba(45, 140, 255, .8) solid',
-          borderRadius: '18px',
-          transition: 'all 2s',
-          zIndex: 1000,
-          display: 'none',
-          opacity: 0
-        };
-      },
-      closeDivStyle: function(postData) {
-        var leftCalc = postData.innerWidth / 2 + 9;
-        var topCalc = postData.innerHeight / 2 - 199;
-        return {
-          display: 'none',
-          color: 'rgb(255, 255, 255)',
-          backgroundColor: 'rgb(14, 113, 235)',
-          transition: 'all 2s',
-          opacity: 0,
-          fontSize: '17px',
-          fontWeight: 'bold',
-          fontFamily: '"Lato", "Helvetica", "Arial"',
-          position: 'absolute',
-          left: (leftCalc > 158 ? leftCalc : 159) + 'px',
-          top: (topCalc > 25 ? topCalc : 26) + 'px',
-          width: '54px',
-          height: '24px',
-          padding: '5px 55px',
-          borderRadius: '8px',
-          zIndex: 1000
-        };
-      },
-      redirectAuthIndex: 1,
-      redirectAuthRegex: '.*code=(.*)',
-      errorCode: function(requestResult, requestResponse){return requestResult.code ? requestResult.code : (requestResult.error != undefined && requestResult.error.code ? requestResult.error.code : requestResponse.statusCode);},
-      errorMessage: function(requestResult){return requestResult.message ? requestResult.message : (requestResult.reason ? requestResult.reason : (requestResult.error != undefined && requestResult.error.message ? requestResult.error.message : 'No message returned from ' + this.id));},
-    }
+    zoom.apiConfig,
+    // gtm.apiConfig
   ];
 
 const actions = {
@@ -147,7 +50,8 @@ const actions = {
   authupdate: 'authupdate',
   deleteandreplace: 'deleteandreplace',
   deleteandcontinue: 'deleteandcontinue',
-  leaveandcontinue: 'leaveandcontinue'
+  leaveandcontinue: 'leaveandcontinue',
+  openupgradeurl: 'openupgradeurl'
 };
 
 const contentType = {
@@ -156,21 +60,28 @@ const contentType = {
   text: 'text/html'
 };
 
+var cookieConfig = {
+  httpOnly: true, // to disable accessing cookie via client side js
+  secure: true, // to force https
+  sameSite: true // to prevent CSRF attacks
+};
+
 
 module.exports = (req, res) => {
+  'use strict';
 
   var conflictingMeetings = [];
   var conflictingMeetingIndex;
   var meetingDetails;
   var authToken;
   var refreshToken;
+  var encryptedAuthData;
   var apiPackage;
   var sendData;
   var postData;
   var meetingToDelete;
   var originalAction;
   var sessionRequests = 0;
-  var returnTokens = false;
   var body = '';
 
   //Set Allowed origins based on constant
@@ -179,6 +90,7 @@ module.exports = (req, res) => {
   }
 
   //Set allowed methods, headers, and default content type
+  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   res.setHeader('Content-Type', 'text/json');
@@ -192,6 +104,21 @@ module.exports = (req, res) => {
       postData = JSON.parse(body);
       var returnPayload = postData.returnPayload;
       var action = postData.action;
+
+      if(action === actions.openupgradeurl){
+        returnSuccess(null,{openUrl: upgradeInstructions});
+      }
+      else if (!fileMakerUACheck(req.headers['user-agent']) && (!postData.version || postData.version < clientVersion)){
+        if(action === actions.eventdelete || action === actions.update){
+          returnSuccess();
+          return;
+        }
+        else{
+          returnModal('Update Required', 'There is a newer version of this meetings service custom action reflecting updates to Zoom. Please click OK for directions.',
+          'cancel', null, 'OK', actions.openupgradeurl);
+          return;
+        }
+      }
 
       //Keep track of the original action requested
       originalAction = postData.action;
@@ -209,24 +136,17 @@ module.exports = (req, res) => {
         postData.editEvent.description = '';
       }
 
-      //Set auth and refresh token if in returnPayload
-      if (postData.authToken) {
-        authToken = postData.authToken;
-      }
-      if (postData.refreshToken) {
-        refreshToken = postData.refreshToken;
-      }
-      if (returnPayload != undefined) {
-        if (returnPayload.authToken) {
-          authToken = returnPayload.authToken;
-        }
-        if (returnPayload.refreshToken) {
-          refreshToken = returnPayload.refreshToken;
-        }
-      }
-
       //Returns on valid meeting type and sets matching meetingSearchRegex
       apiPackage = verifyMeetingType(postData.meetingType);
+
+      //Set auth and refresh token
+      if(!postData.authCode){
+        decryptAuthCookie();
+      }
+
+      if (!apiPackage){
+        returnError('Meeting type - ' + postData.meetingType + ' - is not supported by this service');
+      }
 
       //Find meeting in event description
       meetingDetails = postData.editEvent.description.match(apiPackage.meetingSearchRegex);
@@ -235,7 +155,7 @@ module.exports = (req, res) => {
       if (action === actions.delete || action === actions.eventdelete) {
         if (meetingDetails) {
           if (action === actions.delete) {
-            if (authToken && refreshToken) {
+            if (postData.authCode || authToken && refreshToken) {
               authorizeAPI(function() {
                 deleteMeeting(meetingDetails[1], returnDeleteResult);
               });
@@ -244,14 +164,12 @@ module.exports = (req, res) => {
               returnSuccess('Authorizing ' + apiPackage.id, getOAuthConfig(actions.authdelete), responseCode.authRequired);
             }
           } else if (action === actions.eventdelete) {
-              if (authToken && refreshToken) {
+              if (postData.authCode || authToken && refreshToken) {
                 returnModal('Would you like to delete the associated meeting?', '',
                 'No', null, 'Yes', actions.authdelete, null, null,
                   {
                     returnPayload: {
-                      originalAction: originalAction,
-                      authToken: authToken,
-                      refreshToken: refreshToken
+                      originalAction: originalAction
                     }
                   },
                 responseCode.ok);
@@ -278,7 +196,7 @@ module.exports = (req, res) => {
           returnError('No meeting details found in description');
         }
       } else if (action === actions.create) {
-        if (authToken && refreshToken) {
+        if (postData.authCode || authToken && refreshToken) {
           checkForInvalidMeetingDuration();
           authorizeAPI(createMeeting);
         }
@@ -289,12 +207,10 @@ module.exports = (req, res) => {
         //If start or end changed and meeting data exists in details, prompt to reschedule Meeting
         //TODO: Add check for title change without triggering on meeting create
         if ((postData.changesObject.start || postData.changesObject.end) && meetingDetails) {
-          if (authToken && refreshToken) {
+          if (postData.authCode || authToken && refreshToken) {
             sendData = {
               returnPayload: {
                 originalAction: originalAction,
-                authToken: authToken,
-                refreshToken: refreshToken
               }
             };
             sendData.returnPayload.meetingNumber = meetingDetails[1];
@@ -325,6 +241,7 @@ module.exports = (req, res) => {
             responseCode.ok, 'Error deauthorizing ' + apiPackage.id, function () {},
             function(code, message, errorMessage) {
               if (code === responseCode.badRequest) {
+                clearAuthCookie();
                 returnModal('Success', 'Successfully deauthorized DayBack from ' + apiPackage.id, 'OK', null, null, null, null, null, {clearAuth: true});
               }
             else {
@@ -346,7 +263,7 @@ module.exports = (req, res) => {
         //User requested to reschedule the meeting
         checkForInvalidMeetingDuration();
         authorizeAPI(function() {
-          submitConflictingMeetingRequest(1);
+          submitConflictingMeetingRequest();
         });
       }
 
@@ -354,7 +271,7 @@ module.exports = (req, res) => {
       else if (action === actions.deleteandreplace) {
         //User requested to delete and replace the existing meeting
         deleteMeeting(returnPayload.meetingNumber, function() {
-          submitConflictingMeetingRequest(1);
+          submitConflictingMeetingRequest();
         });
       } else if (action === actions.leaveandcontinue) {
         //User requested to leave a conflicting meeting as is
@@ -392,7 +309,7 @@ module.exports = (req, res) => {
       //Deauthorization request from Zoom Marketplace
       if (postData.payload) {
         if (postData.user_id && postData.account_id && postData.client_id) {
-           if (postData.client_id == zoomID) {
+           if (postData.client_id == zoom.id) {
              returnSuccess('Successfully deauthorized DayBack Meetings Service');
            }
         }
@@ -473,7 +390,7 @@ module.exports = (req, res) => {
 
     //Check for Conflicting Meetings
     else {
-      submitConflictingMeetingRequest(1);
+      submitConflictingMeetingRequest();
     }
   }
 
@@ -491,10 +408,10 @@ module.exports = (req, res) => {
 
 
   function returnCreateResult(result) {
-    var meetingInformation = apiPackage.meetingInformation(result);
+    var meetingDescription = apiPackage.meetingDescription(result);
     if (apiPackage.verifyCreateResult(result)) {
       postData.editEvent.titleEdit = apiPackage.meetingPrefix + postData.editEvent.titleEdit;
-      postData.editEvent.description = postData.editEvent.description === '' ? meetingInformation : (postData.editEvent.description + '\n' + meetingInformation);
+      postData.editEvent.description = postData.editEvent.description === '' ? meetingDescription : (postData.editEvent.description + '\n' + meetingDescription);
       returnSuccess('Meeting successfully created', apiPackage.createReturnData(result, postData));
     } else {
       returnError('Error Creating Meeting - No meeting data returned');
@@ -503,23 +420,22 @@ module.exports = (req, res) => {
 
   function checkExisting(result) {
     //There is an existing meeting for this event
-    if (result.uuid) {
+    if (apiPackage.meetingNumber(result)) {
       returnModal('There is already a meeting for this event', '', 'Cancel', null,
         'Delete and Replace', actions.deleteandreplace, null, null, {
           returnPayload: {
-            authToken: authToken,
             meetingNumber: apiPackage.meetingNumber(result),
             originalAction: originalAction
           }
         }, responseCode.OK, 'Cancel', 'Replace');
     } else {
-      submitConflictingMeetingRequest(1);
+      submitConflictingMeetingRequest();
     }
   }
 
-  function submitConflictingMeetingRequest(pageNumber) {
+  function submitConflictingMeetingRequest(nextPageToken) {
     //Send request to check for conflicting meetings
-    submitRequest(apiPackage.conflictRequestType, apiPackage.conflictURL(pageNumber, authToken),
+    submitRequest(apiPackage.conflictRequestType, apiPackage.conflictURL(nextPageToken, authToken),
       contentType.form,
       checkConflicting,
       responseCode.ok, 'Error checking for conflicting meetings'
@@ -528,41 +444,31 @@ module.exports = (req, res) => {
 
   function checkConflicting(result) {
     var meeting;
-    if (apiPackage.id === meetingTypes.zoom) {
-      if (result.meetings) {
-        for (var i in result.meetings) {
-          meeting = result.meetings[i];
+    if (result.meetings) {
+      for (var i in result.meetings) {
+        meeting = result.meetings[i];
 
-          //Add to conflicting meetings if the meeting ID is not the same
-          //and the meeting start/end times overlap
-          if ((!meetingDetails || meeting.id != meetingDetails[1]) &&
-            moment(meeting.start_time) < moment(postData.editEvent.end) &&
-            moment(meeting.start_time)
-            .add(parseInt(meeting.duration), 'minutes') > moment(postData.editEvent.start)) {
-            conflictingMeetings.push({
-              meetingNumber: meeting.id,
-              topic: meeting.topic,
-              start: moment(meeting.start_time),
-              end: moment(meeting.start_time).add(parseInt(meeting.duration), 'minutes')
-            });
-          }
+        //Add to conflicting meetings if the meeting ID is not the same
+        //and the meeting start/end times overlap
+        if (apiPackage.conflictVerification(postData, meetingDetails, meeting)) {
+          conflictingMeetings.push(apiPackage.meetingObject(meeting));
         }
-        //Check for additional pages to query
-        if (result.page_number == result.page_count) {
-          conflictingMeetingIndex = 0;
-          loopConflicting();
-        } else {
-          //Check for additional Conflicting Meetings
-          submitConflictingMeetingRequest(result.page_number + 1);
-        }
-      } else if (originalAction === actions.create) {
-        sendCreateRequest();
-      } else if (originalAction === actions.update) {
-        sendRescheduleRequest();
-      } else {
-        //Return error if the return payload doesn't have required info
-        returnError('Request could not be processed due to invalid return payload');
       }
+      //Check for additional pages to query
+      if (apiPackage.additionalPageCheck(result)) {
+        conflictingMeetingIndex = 0;
+        loopConflicting();
+      } else {
+        //Check for additional Conflicting Meetings
+        submitConflictingMeetingRequest(result.next_page_token);
+      }
+    } else if (originalAction === actions.create) {
+      sendCreateRequest();
+    } else if (originalAction === actions.update) {
+      sendRescheduleRequest();
+    } else {
+      //Return error if the return payload doesn't have required info
+      returnError('Request could not be processed due to invalid return payload');
     }
   }
 
@@ -579,7 +485,6 @@ module.exports = (req, res) => {
       returnModal('There is already a meeting scheduled during this time', conflictingMeetingDetails,
         'Cancel', null, 'Keep Both', actions.leaveandcontinue, 'Replace', actions.deleteandcontinue, {
           returnPayload: {
-            authToken: authToken,
             conflictingMeetings: conflictingMeetings,
             conflictingMeetingIndex: conflictingMeetingIndex,
             originalAction: originalAction
@@ -609,6 +514,13 @@ module.exports = (req, res) => {
           className: 'APIAuthiFrame',
           style: apiPackage.oauthStyle(postData)
         },
+        authWindowInit: {
+          src: apiPackage.oauthSrc(postData),
+          id: 'APIAuthWindow',
+          sandbox: 'allow-same-origin allow-scripts allow-popups allow-forms',
+          className: 'APIAuthWindow',
+          style: apiPackage.oauthStyle(postData)
+        },
         closeDivInit: {
           id: 'APICloseDiv',
           className: 'APICloseDiv',
@@ -616,6 +528,10 @@ module.exports = (req, res) => {
           style: apiPackage.closeDivStyle(postData)
         },
         iFrameDisplay: {
+          display: 'block',
+          opacity: 1
+        },
+        authWindowDisplay: {
           display: 'block',
           opacity: 1
         },
@@ -640,6 +556,7 @@ module.exports = (req, res) => {
       callback();
     }
     else {
+      sendData = apiPackage.authSendData(postData);
       submitRequest(apiPackage.authRequestType,
         apiPackage.authURL(postData),
         contentType.form,
@@ -649,9 +566,9 @@ module.exports = (req, res) => {
   }
 
   function updateAuthToken(result, callback) {
-    returnTokens = true;
     authToken = apiPackage.authToken(result);
     refreshToken = apiPackage.refreshToken(result);
+    encryptAuthCookie();
     callback();
   }
 
@@ -686,8 +603,12 @@ module.exports = (req, res) => {
 
   //Submit a request to the appropriate meeting API
   function submitRequest(method, url, contentTypeHeader, callback, successCode, errorMessage, authCallback, errorCallback) {
-    var headers = {};
-    headers['content-type'] = contentTypeHeader;
+    let options = {headers: {}};
+    if(contentTypeHeader === contentType.json){
+      options.json = true;
+    }
+    options.headers['content-type'] = contentTypeHeader;
+    options.headers = apiPackage.authTokenHeader(options.headers, authToken);
 
     //Return error if max requests per session exceeded
     sessionRequests++;
@@ -697,28 +618,32 @@ module.exports = (req, res) => {
     }
 
     if (authCallback) {
-      headers = apiPackage.authorizationHeaders(headers);
+      options.headers = apiPackage.authorizationHeaders(options.headers);
     }
 
     //Replace authCode in url with new authCode
-    if (apiPackage.id === meetingTypes.zoom && authToken && url.indexOf('access_token=') >= 0) {
+    if (apiPackage.id === zoom.meetingType && authToken && url.indexOf('access_token=') >= 0) {
       url = url.substring(0, url.indexOf('access_token=') + 13) + authToken;
     }
 
-    request({
-      url: url,
-      method: method,
-      headers: headers,
-      body: sendData ? sendData : ''
-    }, function(error, response, body) {
+    needle.request(method, url, method === 'GET' ? null : sendData, options, function(error, response, body) {
 
-      var result = body ? JSON.parse(body) : '{}';
+      var result = {};
       var code = responseCode.badRequest;
       var message = 'No message returned from ' + apiPackage.id;
+
+      if(body){
+        try {
+          result = JSON.parse(body);
+        } catch (err) {
+          result = body;
+        }
+      }
 
       //Set error code and message returned from meeting API
       code = apiPackage.errorCode(result, response);
       message = apiPackage.errorMessage(result);
+
       //Return error if the request failed
       if (error) {
         returnError(errorMessage + ' - ' + error, responseCode.badRequest, response.statusCode);
@@ -726,7 +651,6 @@ module.exports = (req, res) => {
 
       //Check for expected response code
       else if (code == successCode) {
-        
         callback(result, authCallback);
       }
 
@@ -751,7 +675,7 @@ module.exports = (req, res) => {
          code === responseCode.authRequired && message.match(apiPackage.refreshTokenErrorRegex))) {
         sendData = getOAuthConfig(originalAction);
         sendData.clearAuth = true;
-        returnSuccess('Authorizing ' + apiPackage.id, sendData, responseCode.authRequired);
+        returnSuccess('Refresh token failed - Authorizing ' + apiPackage.id, sendData, responseCode.authRequired);
       }
 
       //Return error if the request was successful but meeting API provided an error code
@@ -777,11 +701,11 @@ module.exports = (req, res) => {
 
   //Returns a success message to DayBack
   function returnSuccess(message, payload, status) {
-    payload = payload ? payload : {};
-    if (returnTokens) {
-      payload.authToken = authToken;
-      payload.refreshToken = refreshToken;
+    if(status === responseCode.authRequired){
+      clearAuthCookie();
     }
+    payload = payload ? payload : {};
+    payload.authToken = encryptedAuthData;
     res.end(JSON.stringify({
       status: status ? status : responseCode.ok,
       message: message,
@@ -792,10 +716,6 @@ module.exports = (req, res) => {
   //Returns a modal prompt to DayBack
   function returnModal(title, message, button1, callback1, button2, callback2, button3, callback3, payload, status, button1Short, button2Short, button3Short) {
     payload = payload ? payload : {};
-    if (returnTokens) {
-      payload.authToken = authToken;
-      payload.refreshToken = refreshToken;
-    }
     payload.modal = {
       title: title,
       message: message,
@@ -813,5 +733,57 @@ module.exports = (req, res) => {
       status: status ? status : responseCode.ok,
       payload: payload
     }));
+  }
+
+  //Encoding and decoding auth cookies
+  function encryptAuthCookie(expire){
+    let iv = crypto.randomBytes(16);
+    let cipher = crypto.createCipheriv(algorithm, Buffer.from(dmscKey), iv);
+    let cookieData = cipher.update(
+      JSON.stringify({
+        authToken: authToken,
+        refreshToken: refreshToken
+      })
+    );
+    cookieData = Buffer.concat([cookieData, cipher.final()]);
+    let encryptedCookieData = {iv: iv.toString('hex'), encryptedData: cookieData.toString('hex')};
+    cookieConfig.maxAge = 60 * 60 * 24 * 31; // about 1-month
+    encryptedAuthData = JSON.stringify(encryptedCookieData);
+    let authCookie = cookie.serialize(postData.meetingType + 'DMSC', encryptedAuthData, cookieConfig);
+    res.setHeader('Set-Cookie', authCookie);
+  }
+
+  function decryptAuthCookie() {
+    let cookies = cookie.parse(req.headers.cookie || '');
+    let encryptedCookieString;
+    if(cookies && cookies[postData.meetingType + 'DMSC']){
+      encryptedCookieString = cookies[postData.meetingType + 'DMSC'];
+    }
+    else if (fileMakerUACheck(req.headers['user-agent'])){
+      encryptedCookieString = postData.authToken;
+    }
+
+    console.log( encryptedCookieString );
+
+    if (encryptedCookieString){
+      try {
+        let encryptedCookie = JSON.parse(encryptedCookieString);
+        let iv = Buffer.from(encryptedCookie.iv, 'hex');
+        let encryptedText = Buffer.from(encryptedCookie.encryptedData, 'hex');
+        let decipher = crypto.createDecipheriv(algorithm, Buffer.from(dmscKey), iv);
+        let decryptedCookie = decipher.update(encryptedText);
+        decryptedCookie = JSON.parse(Buffer.concat([decryptedCookie, decipher.final()]));
+        authToken = decryptedCookie.authToken;
+        refreshToken = decryptedCookie.refreshToken;
+      } catch (error) {
+        //No need to handle as no auth/refresh token is handled later
+      }
+    }
+  }
+
+  function clearAuthCookie(){
+    cookieConfig.maxAge = 0;
+    let authCookie = cookie.serialize(postData.meetingType + 'DMSC', null, cookieConfig);
+    res.setHeader('Set-Cookie', authCookie);
   }
 };
