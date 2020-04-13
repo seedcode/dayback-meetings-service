@@ -1,6 +1,6 @@
 /*jshint esversion: 6 */
 
-//DayBack Meetings Service v3.0
+//DayBack Meetings Service v3.1
 //License: MIT
 
 //Purpose:
@@ -503,7 +503,7 @@ module.exports = (req, res) => {
     }
   }
 
-  //Returns the configuration for OAuth requests, including iframe/popover styling
+  //Returns the configuration for OAuth requests, including popover styling
   function getOAuthConfig(callback) {
     return {
       oAuthConfig: {
@@ -630,7 +630,7 @@ module.exports = (req, res) => {
 
       var result = {};
       var code = responseCode.badRequest;
-      var message = 'No message returned from ' + apiPackage.id;
+      var message = 'No message returned from ' + apiPackage.id + '( ' + url + ' )';
 
       if(body){
         try {
@@ -643,10 +643,9 @@ module.exports = (req, res) => {
       //Set error code and message returned from meeting API
       code = apiPackage.errorCode(result, response);
       message = apiPackage.errorMessage(result);
-
       //Return error if the request failed
       if (error) {
-        returnError(errorMessage + ' - ' + error, responseCode.badRequest, response.statusCode);
+        returnError(errorMessage + ' - ' + error, responseCode.badRequest, code);
       }
 
       //Check for expected response code
@@ -750,7 +749,11 @@ module.exports = (req, res) => {
     cookieConfig.maxAge = 60 * 60 * 24 * 31; // about 1-month
     encryptedAuthData = JSON.stringify(encryptedCookieData);
     let authCookie = cookie.serialize(postData.meetingType + 'DMSC', encryptedAuthData, cookieConfig);
-    res.setHeader('Set-Cookie', authCookie);
+    try{
+      res.setHeader('Set-Cookie', authCookie);
+    }
+    catch(error){}
+
   }
 
   function decryptAuthCookie() {
@@ -762,8 +765,6 @@ module.exports = (req, res) => {
     else if (fileMakerUACheck(req.headers['user-agent'])){
       encryptedCookieString = postData.authToken;
     }
-
-    console.log( encryptedCookieString );
 
     if (encryptedCookieString){
       try {

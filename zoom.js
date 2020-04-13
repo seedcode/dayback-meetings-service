@@ -11,7 +11,7 @@ module.exports = {
         id: 'zoom',
         meetingPrefix: 'Zoom - ',
         rootURI: 'https://api.zoom.us/v2/meetings/',
-        meetingSearchRegex: new RegExp('Meeting ID:\\s(\\d{9})[\\s\\S]*https://zoom.us/j/(\\d{9})'),
+        meetingSearchRegex: new RegExp('Meeting ID:\\s(\\d*)[\\s\\S]*https://zoom.us/j/(\\d*)'),
         refreshTokenErrorRegex: new RegExp('Invalid.*Token'),
         authorizationHeaders: function(headers){headers.Authorization = 'Basic ' + Buffer.from(apiID + ':' + apiSecret).toString('base64'); return headers;},
         authTokenHeader: function(headers, authToken){return headers;},
