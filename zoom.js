@@ -11,11 +11,11 @@ module.exports = {
         id: 'zoom',
         meetingPrefix: 'Zoom - ',
         rootURI: 'https://api.zoom.us/v2/meetings/',
-        meetingSearchRegex: new RegExp('Meeting ID:\\s(\\d*)[\\s\\S]*https://zoom.us/j/(\\d*)'),
+        meetingSearchRegex: new RegExp('Meeting ID:\\s(\\d*)[\\s\\S]*(https://zoom.us/j/(\\d*)(\\?pwd=)?(\\w*)?)'),
         refreshTokenErrorRegex: new RegExp('Invalid.*Token'),
         authorizationHeaders: function(headers){headers.Authorization = 'Basic ' + Buffer.from(apiID + ':' + apiSecret).toString('base64'); return headers;},
         authTokenHeader: function(headers, authToken){return headers;},
-        openURL: function(meetingNumber){return 'https://zoom.us/j/' + meetingNumber;},
+        openURL: function(meetingDetails){return meetingDetails[2];},
         authRequestType: 'POST',
         authURL: function(postData){return 'https://zoom.us/oauth/token?grant_type=authorization_code&code=' + postData.authCode + '&redirect_uri=' + postData.redirectURI;},
         authSendData: function(postData){return 'grant_type=authorization_code&code=' + postData.authCode + '&redirect_uri=' + postData.redirectURI;},
@@ -35,14 +35,23 @@ module.exports = {
         });},
         createURL: function(authToken){return 'https://api.zoom.us/v2/users/me/meetings?access_token=' + authToken;},
         createSendData: function(postData){ return JSON.stringify({
-        'topic': postData.editEvent.titleEdit,
-        'start_time': moment(postData.editEvent.start).toISOString().split('.')[0] + 'Z',
-        'duration': moment.duration(moment(postData.editEvent.end).diff(moment(postData.editEvent.start))).asMinutes(),
-        'type': 2
+        topic: postData.editEvent.titleEdit,
+        start_time: moment(postData.editEvent.start).toISOString().split('.')[0] + 'Z',
+        duration: moment.duration(moment(postData.editEvent.end).diff(moment(postData.editEvent.start))).asMinutes(),
+        type: 2,
+        password: this.makePassword(),
+        settings: {
+            join_before_host: false,
+            waiting_room: true
+        }
         });},
+        makePassword: function() {
+            return Math.round((Math.pow(36, 10 + 1) - Math.random() * Math.pow(36, 10))).toString(36).slice(1);
+        },
         createReturnData: function(requestResult, postData){return {
         meetingNumber: this.meetingNumber(requestResult),
         joinURL: requestResult.join_url,
+        password: requestResult.password,
         editEvent: postData.editEvent
         };},
         verifyCreateResult: function(requestResult){ return requestResult.uuid;},

@@ -1,6 +1,6 @@
 /*jshint esversion: 6 */
 
-//DayBack Meetings Service v3.1
+//DayBack Meetings Service v3.2
 //License: MIT
 
 //Purpose:
@@ -190,7 +190,7 @@ module.exports = (req, res) => {
       } else if (action === actions.start) {
         if (meetingDetails) {
           returnSuccess(null, {
-            'openUrl': apiPackage.openURL(meetingDetails[1])
+            'openUrl': apiPackage.openURL(meetingDetails)
           });
         } else {
           returnError('No meeting details found in description');
@@ -753,7 +753,6 @@ module.exports = (req, res) => {
       res.setHeader('Set-Cookie', authCookie);
     }
     catch(error){}
-
   }
 
   function decryptAuthCookie() {
