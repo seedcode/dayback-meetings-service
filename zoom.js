@@ -1,5 +1,8 @@
 /*jshint esversion: 6 */
 
+//Zoom config for DayBack Meetings Service v2.1
+//License: MIT
+
 const apiID = process.env.ZOOM_ID;
 const apiSecret = process.env.ZOOM_SECRET;
 const moment = require('moment');
@@ -11,7 +14,7 @@ module.exports = {
         id: 'zoom',
         meetingPrefix: 'Zoom - ',
         rootURI: 'https://api.zoom.us/v2/meetings/',
-        meetingSearchRegex: new RegExp('Meeting ID:\\s(\\d*)[\\s\\S]*(https://zoom.us/j/(\\d*)(\\?pwd=)?(\\w*)?)'),
+        meetingSearchRegex: new RegExp('Meeting ID:\\s(\\d*)[\\s\\S]*(https://(.*.)?zoom.us/j/(\\d*)(\\?pwd=)?(\\w*)?)'),
         refreshTokenErrorRegex: new RegExp('Invalid.*Token'),
         authorizationHeaders: function(headers){headers.Authorization = 'Basic ' + Buffer.from(apiID + ':' + apiSecret).toString('base64'); return headers;},
         authTokenHeader: function(headers, authToken){return headers;},
@@ -70,7 +73,7 @@ module.exports = {
         });
         },
         additionalPageCheck: function(requestResult){
-        return typeof requestResult.next_page_token === 'undefined';
+        return typeof requestResult.next_page_token === 'undefined' || requestResult.next_page_token === '';
         },
         meetingDescription: function (requestResult){return 'Meeting ID: ' + requestResult.id + '\nJoin URL: ' + requestResult.join_url;},
         meetingNumber: function(requestResult){return requestResult.id;},
