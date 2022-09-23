@@ -1,3 +1,6 @@
 deployDev.cmd
 private-keys.js
+ecosystem.config.js
 .vercel
+node_modules*
+package-lock.json
