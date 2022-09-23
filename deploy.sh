@@ -1,1 +1,1 @@
-now && now alias
+vercel && vercel alias
