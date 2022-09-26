@@ -1,6 +1,6 @@
 /*jshint esversion: 6 */
 
-//DayBack Meetings Service v3.2
+//DayBack Meetings Service v4.0
 //License: MIT
 
 //Purpose:

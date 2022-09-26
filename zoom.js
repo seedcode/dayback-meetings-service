@@ -1,6 +1,6 @@
 /*jshint esversion: 6 */
 
-//Zoom config for DayBack Meetings Service v2.1
+//Zoom config for DayBack Meetings Service v4.0
 //License: MIT
 
 const apiID = process.env.ZOOM_ID;
