@@ -86,13 +86,13 @@ module.exports = (req, res) => {
 	var originalAction;
 	var sessionRequests = 0;
 	var body = '';
-	//Set Allowed origins based on constant
-	if (allowedOrigins.indexOf(req.headers.origin) > -1) {
-		res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-	}
 
 	//Set allowed methods, headers, and default content type
 	//Set these headers if the node server is directly exposed to the internet
+	//Set Allowed origins based on constant
+	// if (allowedOrigins.indexOf(req.headers.origin) > -1) {
+	// 	res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+	// }
 	// res.setHeader('Access-Control-Allow-Credentials', true);
 	// res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 	// res.setHeader(
