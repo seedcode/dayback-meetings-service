@@ -1,6 +1,6 @@
 /*jshint esversion: 6 */
 
-//Zoom config for DayBack Meetings Service v4.1
+//Zoom config for DayBack Meetings Service v4.2
 //License: MIT
 
 const apiID = process.env.ZOOM_ID;
@@ -35,24 +35,22 @@ module.exports = {
 		},
 		authRequestType: 'POST',
 		authURL: function (postData) {
-			return 'https://zoom.us/oauth/token';
+			return (
+				'https://zoom.us/oauth/token?grant_type=authorization_code&code=' +
+				postData.authCode +
+				'&redirect_uri=' +
+				postData.redirectURI
+			);
 		},
 		authSendData: function (postData) {
-			return JSON.stringify({
-				grant_type: authorization_code,
-				code: postData.authCode,
-				redirect_uri: postData.redirectURI,
-			});
+			return JSON.stringify({});
 		},
 		refreshRequestType: 'POST',
 		refreshURL: function (refreshToken) {
-			return 'https://zoom.us/oauth/token';
+			return 'https://zoom.us/oauth/token?grant_type=refresh_token';
 		},
 		refreshSendData: function (refreshToken) {
-			return json.stringify({
-				grant_type: refresh_token,
-				refresh_token: refreshToken,
-			});
+			return json.stringify({});
 		},
 		deauthRequestType: 'DELETE',
 		deauthURL: function (authToken) {
