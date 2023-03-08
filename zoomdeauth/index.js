@@ -7,8 +7,6 @@
 //Purpose:
 //Receives calls from Zoom Marketplace to deauthorize account
 
-//This file is intended to run as a Zeit deployment. See https://zeit.co for more info
-
 const allowedOrigins = ['*'];
 
 const maxRequestsPerSession = 15;
