@@ -38,21 +38,21 @@ module.exports = {
 			return 'https://zoom.us/oauth/token';
 		},
 		authSendData: function (postData) {
-			return JSON.stringify({
-				grant_type: authorization_code,
+			return {
+				grant_type: 'authorization_code',
 				code: postData.authCode,
 				redirect_uri: postData.redirectURI,
-			});
+			};
 		},
 		refreshRequestType: 'POST',
 		refreshURL: function (refreshToken) {
 			return 'https://zoom.us/oauth/token';
 		},
 		refreshSendData: function (refreshToken) {
-			return json.stringify({
-				grant_type: refresh_token,
+			return {
+				grant_type: 'refresh_token',
 				refresh_token: refreshToken,
-			});
+			};
 		},
 		deauthRequestType: 'DELETE',
 		deauthURL: function (authToken) {
@@ -63,7 +63,7 @@ module.exports = {
 			return this.rootURI + meetingNumber;
 		},
 		deleteSendData: function (authToken) {
-			return JSON.stringify({});
+			return {};
 		},
 		updateRequestType: 'PATCH',
 		updateURL: function (meetingNumber, authToken) {
@@ -74,14 +74,14 @@ module.exports = {
 			return this.rootURI + meetingNumber;
 		},
 		existingSendData: function (authToken) {
-			return JSON.stringify({});
+			return {};
 		},
 		createRequestType: 'POST',
 		createURL: function (authToken) {
 			return 'https://api.zoom.us/v2/users/me/meetings';
 		},
 		createSendData: function (postData, authToken) {
-			return JSON.stringify({
+			return {
 				topic: postData.editEvent.titleEdit,
 				start_time:
 					moment(postData.editEvent.start)
@@ -100,7 +100,7 @@ module.exports = {
 					join_before_host: false,
 					waiting_room: true,
 				},
-			});
+			};
 		},
 		makePassword: function () {
 			return Math.round(
@@ -134,10 +134,10 @@ module.exports = {
 			);
 		},
 		conflictSendData: function (authToken) {
-			return JSON.stringify({});
+			return {};
 		},
 		rescheduleSendData: function (titleWithoutPrefix, postData, authToken) {
-			return JSON.stringify({
+			return {
 				topic: titleWithoutPrefix,
 				start_time:
 					moment(postData.editEvent.start)
@@ -151,7 +151,7 @@ module.exports = {
 					)
 					.asMinutes(),
 				type: 2,
-			});
+			};
 		},
 		additionalPageCheck: function (requestResult) {
 			return (
