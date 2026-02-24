@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const cookie = require('cookie');
 const algorithm = 'aes-256-cbc';
 const dmscKey = process.env.DMSC_KEY;
+const xss = require('xss');
 const allowedOrigins = [
 	'https://app.dayback.com',
 	'https://beta.dayback.com',
@@ -26,6 +27,8 @@ const upgradeInstructions =
 const fileMakerUACheck = function (userAgent) {
 	return userAgent.substring(0, 9) === 'FileMaker';
 };
+
+const meetingDetailFields = [titleEdit];
 
 const responseCode = {
 	zoomFailedAuth: 124,
@@ -64,7 +67,7 @@ const contentType = {
 	text: 'text/html',
 };
 
-var cookieConfig = {
+const cookieConfig = {
 	httpOnly: true, // to disable accessing cookie via client side js
 	secure: true, // to force https
 	sameSite: true, // to prevent CSRF attacks
@@ -73,19 +76,19 @@ var cookieConfig = {
 module.exports = (req, res) => {
 	'use strict';
 
-	var conflictingMeetings = [];
-	var conflictingMeetingIndex;
-	var meetingDetails;
-	var authToken;
-	var refreshToken;
-	var encryptedAuthData;
-	var apiPackage;
-	var sendData;
-	var postData;
-	var meetingToDelete;
-	var originalAction;
-	var sessionRequests = 0;
-	var body = '';
+	const conflictingMeetings = [];
+	let conflictingMeetingIndex;
+	let meetingDetails;
+	let authToken;
+	let refreshToken;
+	let encryptedAuthData;
+	let apiPackage;
+	let sendData;
+	let postData;
+	let meetingToDelete;
+	let originalAction;
+	let sessionRequests = 0;
+	let body = '';
 
 	//Set allowed methods, headers, and default content type
 	//Set these headers if the node server is directly exposed to the internet
@@ -116,8 +119,17 @@ module.exports = (req, res) => {
 		req.on('end', function () {
 			try {
 				postData = JSON.parse(body);
-				var returnPayload = postData.returnPayload;
-				var action = postData.action;
+				const returnPayload = postData.returnPayload;
+				const action = postData.action;
+
+				// Sanitize all input that will be passed to 3rd party endpoint
+				for (const field of meetingDetailFields) {
+					if (postData.editEvent[field]) {
+						postData.editEvent[field] = xss(
+							postData.editEvent[field]
+						);
+					}
+				}
 
 				if (action === actions.openupgradeurl) {
 					returnSuccess(null, {openUrl: upgradeInstructions});
@@ -517,7 +529,7 @@ module.exports = (req, res) => {
 	}
 
 	function sendRescheduleRequest() {
-		var titleWithoutPrefix = postData.editEvent.titleEdit;
+		let titleWithoutPrefix = postData.editEvent.titleEdit;
 
 		//Remove previous meeting prefix from the new title.
 		if (
@@ -586,7 +598,7 @@ module.exports = (req, res) => {
 	}
 
 	function returnCreateResult(result) {
-		var meetingDescription = apiPackage.meetingDescription(result);
+		const meetingDescription = apiPackage.meetingDescription(result);
 		if (apiPackage.verifyCreateResult(result)) {
 			postData.editEvent.titleEdit =
 				apiPackage.meetingPrefix + postData.editEvent.titleEdit;
@@ -594,8 +606,8 @@ module.exports = (req, res) => {
 				postData.editEvent.description === ''
 					? meetingDescription
 					: postData.editEvent.description +
-					  '\n' +
-					  meetingDescription;
+						'\n' +
+						meetingDescription;
 			returnSuccess(
 				'Meeting successfully created',
 				apiPackage.createReturnData(result, postData)
@@ -646,9 +658,9 @@ module.exports = (req, res) => {
 	}
 
 	function checkConflicting(result) {
-		var meeting;
+		let meeting;
 		if (result.meetings) {
-			for (var i in result.meetings) {
+			for (let i in result.meetings) {
 				meeting = result.meetings[i];
 
 				//Add to conflicting meetings if the meeting ID is not the same
@@ -686,8 +698,8 @@ module.exports = (req, res) => {
 	//Loops through the conflicting meetings and asks the user if they'd like
 	//to cancel the action, leave the existing meeting, or delete the existing meeting
 	function loopConflicting() {
-		var conflictingMeeting;
-		var conflictingMeetingDetails;
+		let conflictingMeeting;
+		let conflictingMeetingDetails;
 
 		//If conflicting meetings, show modal, else continue action
 		if (
@@ -828,7 +840,7 @@ module.exports = (req, res) => {
 
 	//Verify the meeting type has been specified and that this app/proxy can handle it
 	function verifyMeetingType(meetingTypeID) {
-		var result;
+		let result;
 		if (!meetingTypeID || meetingTypeID === '') {
 			returnError('Error - Meeting Type not specified');
 		} else {
@@ -893,9 +905,9 @@ module.exports = (req, res) => {
 			method === 'GET' ? null : sendData,
 			options,
 			function (error, response, body) {
-				var result = {};
-				var code = responseCode.badRequest;
-				var message =
+				let result = {};
+				let code = responseCode.badRequest;
+				let message =
 					'No message returned from ' +
 					apiPackage.id +
 					'( ' +
