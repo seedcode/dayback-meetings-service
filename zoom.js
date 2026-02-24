@@ -15,7 +15,7 @@ module.exports = {
 		meetingPrefix: 'Zoom - ',
 		rootURI: 'https://api.zoom.us/v2/meetings/',
 		meetingSearchRegex: new RegExp(
-			'Meeting ID:\\s(\\d*)[\\s\\S]*(https://(.*.)?zoom.us/j/(\\d*)(\\?pwd=)?(\\w*)?)'
+			'Meeting ID:\\s(\\d*)[\\s\\S]*(https://(.*.)?zoom.us/j/(\\d*)(\\?pwd=)?(\\S*)?)'
 		),
 		refreshTokenErrorRegex: new RegExp('Invalid.*Token'),
 		authorizationHeaders: function (headers) {
@@ -216,8 +216,8 @@ module.exports = {
 			);
 		},
 		oauthStyle: function (postData) {
-			var leftCalc = postData.innerWidth / 2 - 190;
-			var topCalc = postData.innerHeight / 2 - 310;
+			const leftCalc = postData.innerWidth / 2 - 190;
+			const topCalc = postData.innerHeight / 2 - 310;
 			return {
 				position: 'absolute',
 				width: '400px',
@@ -233,8 +233,8 @@ module.exports = {
 			};
 		},
 		closeDivStyle: function (postData) {
-			var leftCalc = postData.innerWidth / 2 + 9;
-			var topCalc = postData.innerHeight / 2 - 199;
+			const leftCalc = postData.innerWidth / 2 + 9;
+			const topCalc = postData.innerHeight / 2 - 199;
 			return {
 				display: 'none',
 				color: 'rgb(255, 255, 255)',
@@ -260,20 +260,20 @@ module.exports = {
 			return requestResult.code
 				? requestResult.code
 				: requestResult.error != undefined && requestResult.error.code
-				? requestResult.error.code
-				: requestResponse
-				? requestResponse.statusCode
-				: 'general error';
+					? requestResult.error.code
+					: requestResponse
+						? requestResponse.statusCode
+						: 'general error';
 		},
 		errorMessage: function (requestResult) {
 			return requestResult.message
 				? requestResult.message
 				: requestResult.reason
-				? requestResult.reason
-				: requestResult.error != undefined &&
-				  requestResult.error.message
-				? requestResult.error.message
-				: 'No message returned from ' + this.id;
+					? requestResult.reason
+					: requestResult.error != undefined &&
+						  requestResult.error.message
+						? requestResult.error.message
+						: 'No message returned from ' + this.id;
 		},
 	},
 	meetingType: 'zoom',
