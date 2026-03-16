@@ -602,6 +602,7 @@ module.exports = (req, res) => {
 
 	function returnCreateResult(result) {
 		const meetingDescription = apiPackage.meetingDescription(result);
+		const returnData = apiPackage.createReturnData(result, postData);
 		if (apiPackage.verifyCreateResult(result)) {
 			postData.editEvent.titleEdit =
 				apiPackage.meetingPrefix + postData.editEvent.titleEdit;
@@ -611,10 +612,12 @@ module.exports = (req, res) => {
 					: postData.editEvent.description +
 						'\n' +
 						meetingDescription;
-			returnSuccess(
-				'Meeting successfully created',
-				apiPackage.createReturnData(result, postData)
-			);
+			if (postData.editEvent[apiPackage.customLinkField]) {
+				postData.editEvent[apiPackage.customLinkField] =
+					returnData.joinURL;
+			}
+
+			returnSuccess('Meeting successfully created', returnData);
 		} else {
 			returnError('Error Creating Meeting - No meeting data returned');
 		}
@@ -838,6 +841,10 @@ module.exports = (req, res) => {
 				postData.editEvent.description.substring(
 					meetingDetails.index + meetingDetails.length
 				);
+
+			if (postData.editEvent.hasOwnProperty(apiPackage.customLinkField)) {
+				postData.editEvent[apiPackage.customLinkField] = '';
+			}
 		}
 	}
 

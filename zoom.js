@@ -17,6 +17,7 @@ module.exports = {
 		meetingSearchRegex: new RegExp(
 			'Meeting ID:\\s(\\d*)[\\s\\S]*(https://(.*.)?zoom.us/j/(\\d*)(\\?pwd=)?(\\S*)?)'
 		),
+		customLinkField: 'zoomLinkFieldId',
 		getMeetingDetails: function (editEvent) {
 			const match = editEvent.description.match(this.meetingSearchRegex);
 			return {
