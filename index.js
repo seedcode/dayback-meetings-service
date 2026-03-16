@@ -28,7 +28,7 @@ const fileMakerUACheck = function (userAgent) {
 	return userAgent.substring(0, 9) === 'FileMaker';
 };
 
-const meetingDetailFields = [titleEdit];
+const meetingDetailFields = ['titleEdit'];
 
 const responseCode = {
 	zoomFailedAuth: 124,
@@ -40,10 +40,7 @@ const responseCode = {
 	loopDetected: 508,
 };
 
-const apiPackages = [
-	zoom.apiConfig,
-	// gtm.apiConfig
-];
+const apiPackages = [zoom.apiConfig];
 
 const actions = {
 	create: 'create',
@@ -70,7 +67,7 @@ const contentType = {
 const cookieConfig = {
 	httpOnly: true, // to disable accessing cookie via client side js
 	secure: true, // to force https
-	sameSite: true, // to prevent CSRF attacks
+	sameSite: false, // to allow use in iFrames (salesforce)
 };
 
 module.exports = (req, res) => {
@@ -195,8 +192,8 @@ module.exports = (req, res) => {
 				}
 
 				//Find meeting in event description
-				meetingDetails = postData.editEvent.description.match(
-					apiPackage.meetingSearchRegex
+				meetingDetails = apiPackage.getMeetingDetails(
+					postData.editEvent
 				);
 
 				//Initial actions that can be called from the custom action
@@ -212,7 +209,7 @@ module.exports = (req, res) => {
 							) {
 								authorizeAPI(function () {
 									deleteMeeting(
-										meetingDetails[1],
+										meetingDetails.meetingNumber,
 										returnDeleteResult
 									);
 								});
@@ -271,7 +268,7 @@ module.exports = (req, res) => {
 				} else if (action === actions.start) {
 					if (meetingDetails) {
 						returnSuccess(null, {
-							openUrl: apiPackage.openURL(meetingDetails),
+							openUrl: meetingDetails.joinURL,
 						});
 					} else {
 						returnError('No meeting details found in description');
@@ -302,7 +299,7 @@ module.exports = (req, res) => {
 								},
 							};
 							sendData.returnPayload.meetingNumber =
-								meetingDetails[1];
+								meetingDetails.meetingNumber;
 							returnModal(
 								'Would you like to update the Meeting?',
 								'',
@@ -318,7 +315,7 @@ module.exports = (req, res) => {
 						} else {
 							sendData = getOAuthConfig(actions.authupdate);
 							sendData.returnPayload.meetingNumber =
-								meetingDetails[1];
+								meetingDetails.meetingNumber;
 							returnModal(
 								'Would you like to update the Meeting?',
 								'',
@@ -395,7 +392,10 @@ module.exports = (req, res) => {
 				//Actions requiring authorization with meeting API
 				else if (action === actions.authdelete) {
 					authorizeAPI(function () {
-						deleteMeeting(meetingDetails[1], returnDeleteResult);
+						deleteMeeting(
+							meetingDetails.meetingNumber,
+							returnDeleteResult
+						);
 					});
 				} else if (action === actions.authcreate) {
 					checkForInvalidMeetingDuration();
@@ -551,7 +551,7 @@ module.exports = (req, res) => {
 		//Submit request to update the meeting
 		submitRequest(
 			apiPackage.updateRequestType,
-			apiPackage.updateURL(meetingDetails[1], authToken),
+			apiPackage.updateURL(meetingDetails.meetingNumber, authToken),
 			contentType.json,
 			function () {
 				returnSuccess('Meeting successfully rescheduled');
@@ -568,7 +568,10 @@ module.exports = (req, res) => {
 			//Submit request to check for existing meeting
 			submitRequest(
 				apiPackage.existingCheckType,
-				apiPackage.existingCheckURL(meetingDetails[1], authToken),
+				apiPackage.existingCheckURL(
+					meetingDetails.meetingNumber,
+					authToken
+				),
 				contentType.form,
 				checkExisting,
 				responseCode.ok,
@@ -833,7 +836,7 @@ module.exports = (req, res) => {
 					meetingDetails.index - 1
 				) +
 				postData.editEvent.description.substring(
-					meetingDetails.index + meetingDetails[0].length
+					meetingDetails.index + meetingDetails.length
 				);
 		}
 	}

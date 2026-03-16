@@ -17,6 +17,16 @@ module.exports = {
 		meetingSearchRegex: new RegExp(
 			'Meeting ID:\\s(\\d*)[\\s\\S]*(https://(.*.)?zoom.us/j/(\\d*)(\\?pwd=)?(\\S*)?)'
 		),
+		getMeetingDetails: function (editEvent) {
+			const match = editEvent.description.match(this.meetingSearchRegex);
+			return {
+				meetingNumber: match ? match[1] : null,
+				joinURL: match ? match[2] : null,
+				password: match ? match[6] : null,
+				index: match ? match.index : null,
+				length: match ? match[0].length : null,
+			};
+		},
 		refreshTokenErrorRegex: new RegExp('Invalid.*Token'),
 		authorizationHeaders: function (headers) {
 			headers.Authorization =
@@ -29,9 +39,6 @@ module.exports = {
 				headers.authorization = 'Bearer ' + authToken;
 			}
 			return headers;
-		},
-		openURL: function (meetingDetails) {
-			return meetingDetails[2];
 		},
 		authRequestType: 'POST',
 		authURL: function (postData) {
@@ -181,7 +188,8 @@ module.exports = {
 			requestResponse
 		) {
 			return (
-				(!meetingDetails || requestResponse.id != meetingDetails[1]) &&
+				(!meetingDetails ||
+					requestResponse.id != meetingDetails.meetingNumber) &&
 				moment(requestResponse.start_time) <
 					moment(postData.editEvent.end) &&
 				moment(requestResponse.start_time).add(
