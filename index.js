@@ -76,6 +76,7 @@ module.exports = (req, res) => {
 	const conflictingMeetings = [];
 	let conflictingMeetingIndex;
 	let meetingDetails;
+	let customLinkField;
 	let authToken;
 	let refreshToken;
 	let encryptedAuthData;
@@ -196,12 +197,14 @@ module.exports = (req, res) => {
 					postData.editEvent
 				);
 
+				customLinkField = postData[apiPackage.customLinkField];
+
 				//Initial actions that can be called from the custom action
 				if (
 					action === actions.delete ||
 					action === actions.eventdelete
 				) {
-					if (meetingDetails) {
+					if (meetingDetails.meetingNumber) {
 						if (action === actions.delete) {
 							if (
 								postData.authCode ||
@@ -290,7 +293,7 @@ module.exports = (req, res) => {
 					if (
 						(postData.changesObject.start ||
 							postData.changesObject.end) &&
-						meetingDetails
+						meetingDetails.meetingNumber
 					) {
 						if (postData.authCode || (authToken && refreshToken)) {
 							sendData = {
@@ -563,7 +566,7 @@ module.exports = (req, res) => {
 
 	function createMeeting() {
 		//Check for existing meeting if one is in the description
-		if (meetingDetails) {
+		if (meetingDetails.meetingNumber) {
 			sendData = apiPackage.existingSendData(authToken);
 			//Submit request to check for existing meeting
 			submitRequest(
@@ -612,9 +615,13 @@ module.exports = (req, res) => {
 					: postData.editEvent.description +
 						'\n' +
 						meetingDescription;
-			if (postData.editEvent[apiPackage.customLinkField]) {
-				postData.editEvent[apiPackage.customLinkField] =
-					returnData.joinURL;
+			console.log(
+				customLinkField,
+				postData.editEvent[customLinkField],
+				returnData.joinURL
+			);
+			if (customLinkField) {
+				postData.editEvent[customLinkField] = returnData.joinURL;
 			}
 
 			returnSuccess('Meeting successfully created', returnData);
@@ -832,7 +839,7 @@ module.exports = (req, res) => {
 				);
 		}
 		//Remove previous meeting details from description
-		if (meetingDetails) {
+		if (meetingDetails.meetingNumber) {
 			postData.editEvent.description =
 				postData.editEvent.description.substring(
 					0,
@@ -841,10 +848,13 @@ module.exports = (req, res) => {
 				postData.editEvent.description.substring(
 					meetingDetails.index + meetingDetails.length
 				);
+		}
 
-			if (postData.editEvent.hasOwnProperty(apiPackage.customLinkField)) {
-				postData.editEvent[apiPackage.customLinkField] = '';
-			}
+		if (
+			customLinkField &&
+			postData.editEvent.hasOwnProperty(customLinkField)
+		) {
+			postData.editEvent[customLinkField] = '';
 		}
 	}
 
