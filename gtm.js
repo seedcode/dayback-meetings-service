@@ -77,8 +77,8 @@ module.exports = {
     oauthSrc: function(postData) {return 'https://api.getgo.com/oauth/v2/authorize?response_type=code&client_id=' + apiID + '&redirect_uri=' + postData.redirectURI;},
     oauthStyle: function(postData) {
       
-      var leftCalc = postData.innerWidth / 2 - 150;
-      var topCalc = postData.innerHeight / 2 - 225;
+      const leftCalc = postData.innerWidth / 2 - 150;
+      const topCalc = postData.innerHeight / 2 - 225;
       return {
         position: 'absolute',
         width: '320px',
@@ -94,8 +94,8 @@ module.exports = {
       };
     },
     closeDivStyle: function(postData) {
-      var leftCalc = postData.innerWidth / 2 + 9;
-      var topCalc = postData.innerHeight / 2 - 199;
+      const leftCalc = postData.innerWidth / 2 + 9;
+      const topCalc = postData.innerHeight / 2 - 199;
       return {
         display: 'none',
         color: 'rgb(255, 255, 255)',
