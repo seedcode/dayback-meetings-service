@@ -17,15 +17,47 @@ module.exports = {
 		meetingSearchRegex: new RegExp(
 			'Meeting ID:\\s(\\d*)[\\s\\S]*(https://(.*.)?zoom.us/j/(\\d*)(\\?pwd=)?(\\S*)?)'
 		),
+		linkParseRegex: new RegExp(
+			'https://(.*.)?zoom.us/j/(\\d*)(\\?pwd=)?(\\S*)?'
+		),
 		customLinkField: 'zoomLinkFieldId',
-		getMeetingDetails: function (editEvent) {
-			const match = editEvent.description.match(this.meetingSearchRegex);
+		setCustomLinkFieldId: function (fieldId) {
+			this.customLinkFieldId = fieldId;
+		},
+		getMeetingDetails: function (editEvent, descriptionOnly) {
+			const descriptionMatch = editEvent.description.match(
+				this.meetingSearchRegex
+			);
+			const linkMatch = this.customLinkFieldId
+				? editEvent[this.customLinkFieldId].match(this.linkParseRegex)
+				: null;
 			return {
-				meetingNumber: match ? match[1] : null,
-				joinURL: match ? match[2] : null,
-				password: match ? match[6] : null,
-				index: match ? match.index : null,
-				length: match ? match[0].length : null,
+				meetingNumber:
+					this.customLinkFieldId && !descriptionOnly
+						? linkMatch
+							? linkMatch[2]
+							: null
+						: descriptionMatch
+							? descriptionMatch[1]
+							: null,
+				joinURL:
+					this.customLinkFieldId && !descriptionOnly
+						? linkMatch
+							? linkMatch[0]
+							: null
+						: descriptionMatch
+							? descriptionMatch[2]
+							: null,
+				password:
+					this.customLinkFieldId && !descriptionOnly
+						? linkMatch
+							? linkMatch[4]
+							: null
+						: descriptionMatch
+							? descriptionMatch[6]
+							: null,
+				index: descriptionMatch?.index,
+				length: descriptionMatch?.[0]?.length,
 			};
 		},
 		refreshTokenErrorRegex: new RegExp('Invalid.*Token'),

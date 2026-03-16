@@ -76,7 +76,6 @@ module.exports = (req, res) => {
 	const conflictingMeetings = [];
 	let conflictingMeetingIndex;
 	let meetingDetails;
-	let customLinkField;
 	let authToken;
 	let refreshToken;
 	let encryptedAuthData;
@@ -197,7 +196,9 @@ module.exports = (req, res) => {
 					postData.editEvent
 				);
 
-				customLinkField = postData[apiPackage.customLinkField];
+				apiPackage.setCustomLinkFieldId(
+					postData[apiPackage.customLinkField]
+				);
 
 				//Initial actions that can be called from the custom action
 				if (
@@ -615,13 +616,9 @@ module.exports = (req, res) => {
 					: postData.editEvent.description +
 						'\n' +
 						meetingDescription;
-			console.log(
-				customLinkField,
-				postData.editEvent[customLinkField],
-				returnData.joinURL
-			);
-			if (customLinkField) {
-				postData.editEvent[customLinkField] = returnData.joinURL;
+			if (apiPackage.customLinkFieldId) {
+				postData.editEvent[apiPackage.customLinkFieldId] =
+					returnData.joinURL;
 			}
 
 			returnSuccess('Meeting successfully created', returnData);
@@ -826,6 +823,10 @@ module.exports = (req, res) => {
 	}
 
 	function removeMeetingDetails() {
+		const descriptionDetails = apiPackage.getMeetingDetails(
+			postData.editEvent,
+			true
+		);
 		//Remove previous meeting prefix from the new title.
 		if (
 			postData.editEvent.titleEdit.substring(
@@ -839,22 +840,22 @@ module.exports = (req, res) => {
 				);
 		}
 		//Remove previous meeting details from description
-		if (meetingDetails.meetingNumber) {
+		if (descriptionDetails.length > 0) {
 			postData.editEvent.description =
 				postData.editEvent.description.substring(
 					0,
-					meetingDetails.index - 1
+					descriptionDetails.index - 1
 				) +
 				postData.editEvent.description.substring(
-					meetingDetails.index + meetingDetails.length
+					descriptionDetails.index + descriptionDetails.length
 				);
 		}
 
 		if (
-			customLinkField &&
-			postData.editEvent.hasOwnProperty(customLinkField)
+			apiPackage.customLinkFieldId &&
+			postData.editEvent.hasOwnProperty(apiPackage.customLinkFieldId)
 		) {
-			postData.editEvent[customLinkField] = '';
+			postData.editEvent[apiPackage.customLinkFieldId] = '';
 		}
 	}
 
