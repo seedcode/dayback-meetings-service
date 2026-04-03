@@ -219,7 +219,7 @@ module.exports = (req, res) => {
 								});
 							} else {
 								returnSuccess(
-									'Authorizing ' + apiPackage.id,
+									'Authorizing ' + apiPackage.prettyName,
 									getOAuthConfig(actions.authdelete),
 									responseCode.authRequired
 								);
@@ -283,7 +283,7 @@ module.exports = (req, res) => {
 						authorizeAPI(createMeeting);
 					} else {
 						returnSuccess(
-							'Authorizing ' + apiPackage.id,
+							'Authorizing ' + apiPackage.prettyName,
 							getOAuthConfig(actions.authcreate),
 							responseCode.authRequired
 						);
@@ -305,7 +305,7 @@ module.exports = (req, res) => {
 							sendData.returnPayload.meetingNumber =
 								meetingDetails.meetingNumber;
 							returnModal(
-								'Would you like to update the Meeting?',
+								'Would you like to update the meeting?',
 								'',
 								'No',
 								null,
@@ -353,7 +353,7 @@ module.exports = (req, res) => {
 								returnModal(
 									'Success',
 									'Successfully deauthorized DayBack from ' +
-										apiPackage.id,
+										apiPackage.prettyName,
 									'OK',
 									null,
 									null,
@@ -364,7 +364,7 @@ module.exports = (req, res) => {
 								);
 							},
 							responseCode.ok,
-							'Error deauthorizing ' + apiPackage.id,
+							'Error deauthorizing ' + apiPackage.prettyName,
 							function () {},
 							function (code, message, errorMessage) {
 								if (code === responseCode.badRequest) {
@@ -372,7 +372,7 @@ module.exports = (req, res) => {
 									returnModal(
 										'Success',
 										'Successfully deauthorized DayBack from ' +
-											apiPackage.id,
+											apiPackage.prettyName,
 										'OK',
 										null,
 										null,
@@ -809,7 +809,7 @@ module.exports = (req, res) => {
 				contentType.form,
 				updateAuthToken,
 				responseCode.ok,
-				'Error authorizing ' + apiPackage.id,
+				'Error authorizing ' + apiPackage.prettyName,
 				callback
 			);
 		}
@@ -930,7 +930,7 @@ module.exports = (req, res) => {
 				let code = responseCode.badRequest;
 				let message =
 					'No message returned from ' +
-					apiPackage.id +
+					apiPackage.prettyName +
 					'( ' +
 					url +
 					' )';
@@ -969,7 +969,7 @@ module.exports = (req, res) => {
 						contentType.form,
 						updateAuthToken,
 						responseCode.ok,
-						'Error authorizing ' + apiPackage.id,
+						'Error authorizing ' + apiPackage.prettyName,
 						function () {
 							submitRequest(
 								method,
@@ -996,7 +996,8 @@ module.exports = (req, res) => {
 					sendData = getOAuthConfig(originalAction);
 					sendData.clearAuth = true;
 					returnSuccess(
-						'Refresh token failed - Authorizing ' + apiPackage.id,
+						'Refresh token failed - Authorizing ' +
+							apiPackage.prettyName,
 						sendData,
 						responseCode.authRequired
 					);

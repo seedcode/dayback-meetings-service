@@ -12,6 +12,7 @@ module.exports = {
 	secret: apiSecret,
 	apiConfig: {
 		id: 'zoom',
+		prettyName: 'Zoom',
 		meetingPrefix: 'Zoom - ',
 		rootURI: 'https://api.zoom.us/v2/meetings/',
 		meetingSearchRegex: new RegExp(
@@ -29,7 +30,7 @@ module.exports = {
 				this.meetingSearchRegex
 			);
 			const linkMatch = this.customLinkFieldId
-				? editEvent[this.customLinkFieldId].match(this.linkParseRegex)
+				? editEvent[this.customLinkFieldId]?.match(this.linkParseRegex)
 				: null;
 			return {
 				meetingNumber:
