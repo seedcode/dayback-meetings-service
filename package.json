@@ -13,7 +13,7 @@
 	"main": "index.js",
 	"scripts": {
 		"start": "micro",
-		"deploy": "deployinator --user deploy --app meetings --domain dayback.com --server services-deploy.dayback.me"
+		"deploy": "deployinator --user deploy --app meetings --domain dayback.com --server services-deploy.dayback.me --op-inject ecosystem.config.json"
 	},
 	"private": true
 }
