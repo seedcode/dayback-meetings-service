@@ -28,7 +28,7 @@ const fileMakerUACheck = function (userAgent) {
 	return userAgent.substring(0, 9) === 'FileMaker';
 };
 
-const meetingDetailFields = [titleEdit];
+const meetingDetailFields = ['titleEdit'];
 
 const responseCode = {
 	zoomFailedAuth: 124,
