@@ -1,0 +1,17 @@
+{
+	"apps": [
+		{
+			"name": "meetings.dayback.com",
+			"script": "npm",
+			"args": "start",
+			"watch": false,
+			"env": {
+				"PORT": 3000,
+				"NODE_ENV": "production",
+				"ZOOM_ID": "op://Deployment/meetings-service/zoom-id",
+				"ZOOM_SECRET": "op://Deployment/meetings-service/zoom-secret",
+				"DMSC_KEY": "op://Deployment/meetings-service/dmsc-key"
+			}
+		}
+	]
+}

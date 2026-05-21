@@ -1,6 +1,5 @@
 deployDev.cmd
 private-keys.js
-ecosystem.config.json
 node_modules*
 package-lock.json
 launch.json
